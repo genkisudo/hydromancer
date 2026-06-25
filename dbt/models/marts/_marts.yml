@@ -1,0 +1,96 @@
+version: 2
+
+models:
+  - name: mart_trader_summary
+    description: >
+      Lifetime stats per trader over the loaded window, with a volume-based
+      percentile for power-user segmentation. Grain: one row per trader.
+    columns:
+      - name: trader
+        description: "Wallet address."
+        tests:
+          - not_null
+          - unique
+      - name: cohort_week
+        description: "Trader's first-trade week (from int_trader_cohorts)."
+      - name: first_trade_date
+        description: "Trader's first UTC trade date."
+      - name: active_days
+        description: "Distinct days the trader was active."
+      - name: total_trades
+        description: "Total fills across all days/assets."
+      - name: lifetime_volume_usd
+        description: "Total USD volume traded over the window."
+      - name: lifetime_pnl
+        description: "Total realized PnL over the window."
+      - name: lifetime_fees
+        description: "Total fees paid over the window."
+      - name: total_liquidations
+        description: "Total liquidation fills."
+      - name: volume_percentile
+        description: "NTILE(100) bucket by lifetime volume; 100 = top 1% by volume."
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 100
+
+  - name: mart_cohort_retention
+    description: >
+      Week-over-week retention: for each cohort week, the share of traders who
+      returned in each subsequent week. Grain: one row per (cohort_week, active_week).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - cohort_week
+              - active_week
+    columns:
+      - name: cohort_week
+        description: "Week of the cohort's first trade."
+        tests:
+          - not_null
+      - name: active_week
+        description: "Week in which retained traders were active."
+        tests:
+          - not_null
+      - name: weeks_since_first_trade
+        description: "active_week minus cohort_week, in weeks (0, 1, 2, …)."
+      - name: retained_traders
+        description: "Distinct cohort traders active in active_week."
+      - name: cohort_size
+        description: "Total traders in the cohort."
+      - name: retention_rate
+        description: "retained_traders / cohort_size, in [0, 1]."
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+
+  - name: mart_pnl_distribution
+    description: >
+      Trader counts and volume bucketed into winner/loser PnL tiers.
+      Grain: one row per pnl_bucket.
+    columns:
+      - name: pnl_bucket
+        description: "Categorical PnL tier."
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              arguments:
+                values:
+                  - "Big winner   (>$1k)"
+                  - "Winner       ($100–$1k)"
+                  - "Small winner  ($0–$100)"
+                  - "Breakeven"
+                  - "Small loser   ($0–-$100)"
+                  - "Loser        (-$100–-$1k)"
+                  - "Big loser    (<-$1k)"
+      - name: trader_count
+        description: "Number of traders in the bucket."
+      - name: bucket_volume_usd
+        description: "Total volume traded by traders in the bucket."
+      - name: avg_pnl
+        description: "Average lifetime PnL of traders in the bucket."

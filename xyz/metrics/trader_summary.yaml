@@ -1,0 +1,73 @@
+type: metrics_view
+display_name: Trader Summary
+
+model: trader_summary
+
+timeseries: first_trade_date
+smallest_time_grain: day
+
+dimensions:
+  - name: cohort_week
+    display_name: Cohort Week
+    column: cohort_week
+
+  - name: volume_tier
+    display_name: Volume Tier
+    expression: |
+      CASE
+        WHEN volume_percentile >= 99 THEN 'Top 1%'
+        WHEN volume_percentile >= 90 THEN 'Top 10%'
+        WHEN volume_percentile >= 50 THEN 'Mid (50–90%)'
+        ELSE 'Low (<50%)'
+      END
+
+  - name: pnl_cohort
+    display_name: PnL Cohort
+    expression: |
+      CASE
+        WHEN lifetime_pnl < -10000 THEN '< -10k'
+        WHEN lifetime_pnl >= -10000 AND lifetime_pnl < -1000 THEN '-10k to -1k'
+        WHEN lifetime_pnl >= -1000 AND lifetime_pnl < 0 THEN '-1k to 0'
+        WHEN lifetime_pnl >= 0 AND lifetime_pnl < 1000 THEN '0 to 1k'
+        WHEN lifetime_pnl >= 1000 AND lifetime_pnl < 10000 THEN '1k to 10k'
+        ELSE '>= 10k'
+      END
+
+measures:
+  - name: trader_count
+    display_name: Traders
+    expression: COUNT(*)
+    format_preset: humanize
+
+  - name: total_volume
+    display_name: Lifetime Volume (USD)
+    expression: SUM(lifetime_volume_usd)
+    format_preset: currency_usd
+
+  - name: total_pnl
+    display_name: Lifetime PnL
+    expression: SUM(lifetime_pnl)
+    format_preset: currency_usd
+
+  - name: total_fees
+    display_name: Lifetime Fees
+    expression: SUM(lifetime_fees)
+    format_preset: currency_usd
+
+  - name: total_liquidations
+    display_name: Total Liquidations
+    expression: SUM(total_liquidations)
+    format_preset: humanize
+    lower_is_better: true
+
+  - name: avg_active_days
+    display_name: Avg Active Days
+    expression: AVG(active_days)
+    format_d3: ",.1f"
+    valid_percent_of_total: false
+
+  - name: avg_trade_size
+    display_name: Avg Trade Size
+    expression: AVG(avg_trade_size_usd)
+    format_preset: currency_usd
+    valid_percent_of_total: false

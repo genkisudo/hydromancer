@@ -1,0 +1,23 @@
+[sqlfluff]
+# Built-in jinja templater with dbt builtins (ref/source/config/is_incremental/this)
+# shimmed in — runs with no extra plugin. Switch to `dbt` if you
+# `pip install sqlfluff-templater-dbt`.
+templater = jinja
+dialect = duckdb
+max_line_length = 100
+# Rules excluded to match the project's established house style:
+#   LT01 aligned `AS` padding   LT02 hand-aligned multi-line expressions
+#   LT08 no blank line between CTEs   LT09 multiple select targets per line in CTEs
+#   ST06 select-target ordering   ST07 USING joins   AM05 unqualified joins
+#   RF06 intentional "date" quoting (reserved word)   CP03 mixed function casing
+exclude_rules = LT01, LT02, LT08, LT09, ST06, ST07, AM05, RF06, CP03
+
+[sqlfluff:indentation]
+tab_space_size = 4
+indent_unit = space
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:aliasing.table]
+aliasing = implicit

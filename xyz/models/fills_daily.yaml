@@ -1,0 +1,4 @@
+type: model
+materialize: false
+
+sql: SELECT * FROM xyz_analytics.main_intermediate.int_trader_daily

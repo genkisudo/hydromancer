@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: stg_xyz_fills
+    description: >
+      Raw xyz perp fills from the hydromancer source, last 30 days, incrementally
+      loaded. Grain is (trade_id, trader): every trade is recorded from both
+      counterparties, so trade_id appears twice. Using trade_id alone as the
+      incremental key would delete one side of every trade, and SUM(volume_usd)
+      across all rows double-counts market-wide volume (per-trader aggregates are fine).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - trade_id
+              - trader
+    columns:
+      - name: trade_id
+        description: "Trade identifier. NOT unique on its own — two rows per trade (maker + taker)."
+        tests:
+          - not_null
+      - name: trader
+        description: "Wallet address of the trader (the fill's `address`)."
+        tests:
+          - not_null
+      - name: timestamp
+        description: "Fill execution time (UTC)."
+        tests:
+          - not_null
+      - name: trade_date
+        description: "UTC calendar date of the fill, independent of session timezone."
+      - name: volume_usd
+        description: "price * size for this fill."
+      - name: realized_pnl
+        description: "Realized profit/loss booked on this fill."
+      - name: is_liquidation
+        description: "True if this fill was part of a liquidation."
+      - name: crossed
+        description: "True if the order crossed the spread (taker); false = maker."

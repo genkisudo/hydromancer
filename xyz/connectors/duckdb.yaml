@@ -1,0 +1,5 @@
+type: connector
+
+driver: duckdb
+path: /Users/genkisudo/Documents/hydromancer_duckdb/dbt/xyz_analytics.duckdb
+mode: readwrite

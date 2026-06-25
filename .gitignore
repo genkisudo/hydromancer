@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# DuckDB data files (too large / generated)
+*.duckdb
+*.duckdb.wal
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# macOS
+.DS_Store

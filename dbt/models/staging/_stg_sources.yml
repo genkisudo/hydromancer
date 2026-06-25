@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: hydromancer
+    description: >
+      Hydromancer Reservoir — public Hyperliquid on-chain dataset stored as
+      Parquet in s3://hydromancer-reservoir (ap-northeast-1, requester-pays).
+      The S3 secret is created by the on-run-start hook in dbt_project.yml.
+    tables:
+      - name: xyz_perp_fills
+        description: >
+          xyz dex perp fills (by_dex/xyz/fills/perp/all), one Parquet file per
+          UTC day under date=YYYY-MM-DD hive partitions. Grain is one row per
+          counterparty side of a trade, so trade_id appears twice (maker + taker).
+        meta:
+          external_location: >-
+            read_parquet('s3://hydromancer-reservoir/by_dex/xyz/fills/perp/all/date=*/fills.parquet',
+            hive_partitioning = true)

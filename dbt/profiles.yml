@@ -1,0 +1,21 @@
+# Copy this file to ~/.dbt/profiles.yml, OR run dbt with:
+#   dbt run --profiles-dir .
+#
+# This uses your existing ~/.aws/credentials via the credential_chain provider.
+# No keys need to be hardcoded here.
+
+xyz_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBT_DUCKDB_PATH', 'xyz_analytics.duckdb') }}"
+      extensions:
+        - httpfs
+      settings:
+        s3_region: ap-northeast-1
+        s3_requester_pays: true
+        # Pin to UTC so DATE_TRUNC / day boundaries match the UTC date
+        # partitions in S3. Without this, the local session timezone shifts
+        # ~7% of rows into the wrong trade_date (verified on 2026-06-24).
+        TimeZone: UTC

@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: int_trader_daily
+    description: >
+      Per-trader, per-asset daily aggregates over the loaded window.
+      Grain: one row per (trade_date, trader, base_symbol).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - trade_date
+              - trader
+              - base_symbol
+    columns:
+      - name: trade_date
+        description: "UTC calendar day."
+        tests:
+          - not_null
+      - name: trader
+        description: "Wallet address."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_xyz_fills')
+                field: trader
+      - name: base_symbol
+        description: "Base asset traded (e.g. BTC, MSFT)."
+        tests:
+          - not_null
+      - name: trade_count
+        description: "Number of fills for this trader/asset/day."
+      - name: volume_usd
+        description: "Sum of price * size for the trader/asset/day."
+      - name: realized_pnl
+        description: "Sum of realized PnL for the day."
+      - name: fees_paid
+        description: "Sum of fees paid for the day."
+      - name: liquidations
+        description: "Count of fills flagged as liquidations."
+      - name: taker_fills
+        description: "Count of crossed (taker) fills."
+      - name: maker_fills
+        description: "Count of resting (maker) fills."
+
+  - name: int_trader_cohorts
+    description: >
+      One row per trader recording their first activity within the loaded
+      window, used as the basis for weekly retention cohorts.
+    columns:
+      - name: trader
+        description: "Wallet address."
+        tests:
+          - not_null
+          - unique
+      - name: first_trade_date
+        description: "Earliest UTC trade date observed for the trader."
+        tests:
+          - not_null
+      - name: cohort_week
+        description: "Monday-anchored week of the trader's first trade."
+        tests:
+          - not_null
+      - name: first_trade_at
+        description: "Exact UTC timestamp of the trader's first fill."

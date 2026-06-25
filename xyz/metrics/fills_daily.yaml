@@ -1,0 +1,60 @@
+type: metrics_view
+display_name: Daily Fills
+
+model: fills_daily
+
+timeseries: trade_date
+smallest_time_grain: day
+
+dimensions:
+  - name: trade_date
+    column: trade_date
+  - name: base_symbol
+    display_name: Coin
+    column: base_symbol
+  - name: trader
+    column: trader
+
+measures:
+  - name: unique_traders
+    display_name: Unique Traders
+    expression: COUNT(DISTINCT trader)
+    format_preset: humanize
+
+  - name: total_trades
+    display_name: Total Trades
+    expression: SUM(trade_count)
+    format_preset: humanize
+
+  - name: total_volume_usd
+    display_name: Volume (USD)
+    expression: SUM(volume_usd)
+    format_preset: currency_usd
+
+  - name: total_pnl
+    display_name: Realized PnL
+    expression: SUM(realized_pnl)
+    format_preset: currency_usd
+
+  - name: total_fees
+    display_name: Fees Paid
+    expression: SUM(fees_paid)
+    format_preset: currency_usd
+
+  - name: total_liquidations
+    display_name: Liquidations
+    expression: SUM(liquidations)
+    format_preset: humanize
+    lower_is_better: true
+
+  - name: avg_trade_size
+    display_name: Avg Trade Size
+    expression: SUM(volume_usd) / NULLIF(SUM(trade_count), 0)
+    format_preset: currency_usd
+    valid_percent_of_total: false
+
+  - name: taker_ratio
+    display_name: Taker Ratio
+    expression: SUM(taker_fills) * 1.0 / NULLIF(SUM(taker_fills) + SUM(maker_fills), 0)
+    format_preset: percentage
+    valid_percent_of_total: false

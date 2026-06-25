@@ -1,0 +1,168 @@
+type: canvas
+display_name: XYZ Trading Overview
+
+defaults:
+  time_range: P30D
+  comparison_mode: time
+
+rows:
+  # ── Header ───────────────────────────────────────────────────────────────
+  - height: 80px
+    items:
+      - width: 12
+        markdown:
+          content: |
+            # XYZ DEX — Trading Overview
+            Rolling 30-day snapshot · volume, PnL, trader distribution, and cohort retention.
+          alignment:
+            horizontal: left
+            vertical: middle
+
+  # ── KPIs ─────────────────────────────────────────────────────────────────
+  - height: 180px
+    items:
+      - width: 12
+        kpi_grid:
+          metrics_view: fills_daily
+          measures:
+            - total_volume_usd
+            - unique_traders
+            - total_pnl
+            - total_liquidations
+          comparison:
+            - percent_change
+          sparkline: right
+
+  # ── Volume trend + Coin leaderboard ──────────────────────────────────────
+  - height: 380px
+    items:
+      - width: 8
+        stacked_bar:
+          metrics_view: fills_daily
+          title: "Daily Volume by Coin (Top 5)"
+          color:
+            field: base_symbol
+            type: nominal
+            limit: 5
+            legendOrientation: top
+          x:
+            field: trade_date
+            type: temporal
+          y:
+            field: total_volume_usd
+            type: quantitative
+            zeroBasedOrigin: true
+
+      - width: 4
+        leaderboard:
+          metrics_view: fills_daily
+          title: "Top Coins by Volume"
+          dimensions:
+            - base_symbol
+          measures:
+            - total_volume_usd
+            - total_trades
+            - unique_traders
+          num_rows: 10
+
+  # ── PnL trend + Active traders ────────────────────────────────────────────
+  - height: 300px
+    items:
+      - width: 6
+        line_chart:
+          metrics_view: fills_daily
+          title: "Daily Realized PnL"
+          color: primary
+          x:
+            field: trade_date
+            type: temporal
+          y:
+            field: total_pnl
+            type: quantitative
+            zeroBasedOrigin: false
+
+      - width: 6
+        area_chart:
+          metrics_view: fills_daily
+          title: "Daily Active Traders"
+          color: primary
+          x:
+            field: trade_date
+            type: temporal
+          y:
+            field: unique_traders
+            type: quantitative
+            zeroBasedOrigin: true
+
+  # ── Trader Distribution ───────────────────────────────────────────────────
+  - height: 50px
+    items:
+      - width: 12
+        markdown:
+          content: "## Trader Distribution"
+          alignment:
+            horizontal: left
+            vertical: middle
+
+  - height: 300px
+    items:
+      - width: 6
+        bar_chart:
+          metrics_view: trader_summary
+          title: "Traders by Volume Tier"
+          x:
+            field: volume_tier
+            type: nominal
+            sort:
+              - "Low (<50%)"
+              - "Mid (50–90%)"
+              - "Top 10%"
+              - "Top 1%"
+          y:
+            field: trader_count
+            type: quantitative
+            zeroBasedOrigin: true
+
+      - width: 6
+        bar_chart:
+          metrics_view: trader_summary
+          title: "Traders by PnL Cohort"
+          x:
+            field: pnl_cohort
+            type: nominal
+            sort:
+              - "< -10k"
+              - "-10k to -1k"
+              - "-1k to 0"
+              - "0 to 1k"
+              - "1k to 10k"
+              - ">= 10k"
+          y:
+            field: trader_count
+            type: quantitative
+            zeroBasedOrigin: true
+
+  # ── Cohort Retention ──────────────────────────────────────────────────────
+  - height: 50px
+    items:
+      - width: 12
+        markdown:
+          content: "## Cohort Retention"
+          alignment:
+            horizontal: left
+            vertical: middle
+
+  - height: 280px
+    items:
+      - width: 12
+        bar_chart:
+          metrics_view: cohort_retention
+          title: "Avg Retention Rate by Weeks Since First Trade"
+          x:
+            field: weeks_since_first_trade
+            type: nominal
+            sort: x
+          y:
+            field: avg_retention_rate
+            type: quantitative
+            zeroBasedOrigin: true

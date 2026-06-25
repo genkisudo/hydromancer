@@ -1,0 +1,33 @@
+type: metrics_view
+display_name: Cohort Retention
+
+model: cohort_retention
+
+timeseries: cohort_week
+smallest_time_grain: week
+
+dimensions:
+  - name: cohort_week
+    display_name: Cohort Week
+    column: cohort_week
+
+  - name: weeks_since_first_trade
+    display_name: Weeks Since First Trade
+    column: weeks_since_first_trade
+
+measures:
+  - name: retained_traders
+    display_name: Retained Traders
+    expression: SUM(retained_traders)
+    format_preset: humanize
+
+  - name: cohort_size
+    display_name: Cohort Size
+    expression: SUM(cohort_size)
+    format_preset: humanize
+
+  - name: avg_retention_rate
+    display_name: Avg Retention Rate
+    expression: AVG(retention_rate)
+    format_preset: percentage
+    valid_percent_of_total: false
