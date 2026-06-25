@@ -16,3 +16,14 @@ sources:
           external_location: >-
             read_parquet('s3://hydromancer-reservoir/by_dex/xyz/fills/perp/all/date=*/fills.parquet',
             hive_partitioning = true)
+      - name: xyz_perp_snapshots
+        description: >
+          xyz dex end-of-block perp position snapshots
+          (by_dex/xyz/snapshots/perp), one row per (user, market) per snapshot.
+          A day can have multiple snapshot files (block_timestamp in the
+          filename); staging keeps the latest per day. filename is exposed so
+          staging can dedupe to the latest snapshot.
+        meta:
+          external_location: >-
+            read_parquet('s3://hydromancer-reservoir/by_dex/xyz/snapshots/perp/date=*/*.parquet',
+            hive_partitioning = true, filename = true)

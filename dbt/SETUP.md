@@ -85,12 +85,82 @@ Open http://localhost:9009. Tables appear under DATA EXPLORER → duckdb.
 
 ```
 S3 (hydromancer-reservoir)
-  └── stg_xyz_fills          (incremental — queries S3 once)
-        ├── int_trader_daily       (table — all trader/day stats)
-        │     ├── mart_trader_summary     (power users, percentiles)
-        │     ├── mart_cohort_retention   (retention curves)
-        │     └── mart_pnl_distribution   (winner/loser buckets)
-        └── int_trader_cohorts     (table — first trade per wallet)
-              ├── mart_trader_summary
-              └── mart_cohort_retention
+  ├── stg_xyz_fills          (incremental — queries S3 once)
+  │     ├── int_trader_daily       (table — all trader/day stats)
+  │     │     ├── mart_trader_summary     (power users, percentiles)
+  │     │     ├── mart_cohort_retention   (retention curves)
+  │     │     └── mart_pnl_distribution   (winner/loser buckets)
+  │     └── int_trader_cohorts     (table — first trade per wallet)
+  │           ├── mart_trader_summary
+  │           └── mart_cohort_retention
+  └── stg_xyz_positions      (table — latest perp snapshot/day, last 30d)
+        └── mart_open_interest      (open interest & leverage per market/day)
 ```
+
+---
+
+## Roadmap: conventions to adopt from the Airbnb reference project
+
+The Airbnb course project (`../../northquant_dbt/course/airbnb`) showcases several dbt
+features worth borrowing. We **keep our current `staging` / `intermediate` / `marts`
+layering and `stg_` / `int_` / `mart_` naming** (the current dbt-Labs standard — Airbnb's
+older `src_`/`dim_`/`fct_` style is a lateral move and our data isn't strongly dimensional).
+What's worth adopting are three *features*:
+
+### A. Source freshness
+
+**What:** add `loaded_at_field` + `freshness` thresholds to the sources in
+`models/staging/_stg_sources.yml`, so `dbt source freshness` can flag stale or missing
+S3 partitions before dashboards go stale.
+
+```yaml
+- name: xyz_perp_fills
+  config:
+    loaded_at_field: "timestamp"
+    freshness:
+      warn_after:  {count: 12, period: hour}
+      error_after: {count: 36, period: hour}
+```
+
+**Caveat:** with the dbt-duckdb `external_location` pattern, `dbt source freshness` runs
+`SELECT max(timestamp) FROM read_parquet(...)`, which scans S3 (requester-pays). Bound the
+cost by running freshness only in the daily job (not every build), and note that
+`xyz_perp_snapshots` has no per-row timestamp — its freshness would key off the partition
+`date` instead.
+
+### B. `{% docs %}` doc blocks
+
+**What:** create `models/docs.md` with reusable doc blocks for the data caveats that are
+currently duplicated across SQL comments and multiple `_*.yml` files, then reference them
+with `description: '{{ doc("...") }}'`. Single source of truth, and they render in `dbt docs`.
+
+Candidate blocks: `fills__grain` (the `(trade_id, trader)` maker/taker double-count),
+`fills__volume_usd_doublecount` (SUM over all rows = 2× market volume), `trade_date__utc`
+(UTC day-bucketing rationale), `retention_rate` (retained ÷ *fixed* cohort_size, ∈ [0,1]),
+`positions__latest_per_day` (latest-snapshot dedupe), `oi__notional` (gross OI = `SUM(|notional|)`).
+
+```jinja
+{% docs fills__grain %}
+Grain is (trade_id, trader). Every Hyperliquid trade is recorded from both
+counterparties, so trade_id appears twice (maker + taker); trade_id alone is not unique.
+{% enddocs %}
+```
+
+### C. Unit tests
+
+**What:** add `unit_tests.yml` with mocked-row tests for logic that schema tests cannot
+catch. Schema tests passed while `mart_cohort_retention` was returning an always-1.0 result —
+a unit test with fixed fixtures would have caught it.
+
+Priority cases:
+1. **`mart_cohort_retention`** — given a small cohort active across weeks, assert
+   `retention_rate` *declines* (e.g. week 0 = 1.0, week 1 = 0.5). Guards the exact bug fixed
+   in this project's history.
+2. **`stg_xyz_positions`** — given two snapshot files on the same day (different
+   `snapshot_ms`) for one position, assert only the latest row survives.
+3. *(optional)* **`int_trader_daily`** — given fills with `crossed` true/false, assert the
+   `taker_fills` / `maker_fills` split.
+
+Unit tests are supported on our dbt (1.10) and run under `dbt build` / `dbt test` with no
+warehouse data — cheap and Rill-lock-free.
+

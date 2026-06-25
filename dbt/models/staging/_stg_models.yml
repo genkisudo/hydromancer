@@ -37,3 +37,45 @@ models:
         description: "True if this fill was part of a liquidation."
       - name: crossed
         description: "True if the order crossed the spread (taker); false = maker."
+
+  - name: stg_xyz_positions
+    description: >
+      xyz perp open positions from the hydromancer snapshot source, last 30 days,
+      deduped to the latest snapshot per day. Point-in-time state, so no
+      maker/taker double-count. Grain: one row per (snapshot_date, trader, market).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - snapshot_date
+              - trader
+              - market
+    columns:
+      - name: snapshot_date
+        description: "UTC day of the snapshot."
+        tests:
+          - not_null
+      - name: trader
+        description: "Wallet address holding the position."
+        tests:
+          - not_null
+      - name: market
+        description: "Market / coin id of the position (e.g. xyz:MSFT)."
+        tests:
+          - not_null
+      - name: size
+        description: "Signed position size (positive = long, negative = short)."
+      - name: notional
+        description: "Position notional value in USD."
+      - name: entry_price
+        description: "Average entry price."
+      - name: liquidation_price
+        description: "Estimated liquidation price (null if not calculable)."
+      - name: leverage_type
+        description: "cross or isolated."
+      - name: leverage
+        description: "Leverage multiplier."
+      - name: funding_pnl
+        description: "Cumulative funding PnL (USD)."
+      - name: account_value
+        description: "Margin available on the dex's collateral token (xyz: not necessarily USDC)."

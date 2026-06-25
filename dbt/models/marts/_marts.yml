@@ -94,3 +94,43 @@ models:
         description: "Total volume traded by traders in the bucket."
       - name: avg_pnl
         description: "Average lifetime PnL of traders in the bucket."
+
+  - name: mart_open_interest
+    description: >
+      Daily open interest and leverage profile per market, from the latest
+      snapshot of each day. Grain: one row per (snapshot_date, market).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - snapshot_date
+              - market
+    columns:
+      - name: snapshot_date
+        description: "UTC day of the snapshot."
+        tests:
+          - not_null
+      - name: market
+        description: "Market / coin id."
+        tests:
+          - not_null
+      - name: open_positions
+        description: "Number of open positions in the market that day."
+      - name: traders
+        description: "Distinct traders holding a position in the market."
+      - name: gross_oi_usd
+        description: "Gross open interest (sum of |notional|) in USD."
+      - name: long_oi_usd
+        description: "Open interest held long (size > 0)."
+      - name: short_oi_usd
+        description: "Open interest held short (size < 0)."
+      - name: avg_leverage
+        description: "Average leverage across positions."
+      - name: median_leverage
+        description: "Median leverage across positions."
+      - name: max_leverage
+        description: "Maximum leverage observed."
+      - name: isolated_positions
+        description: "Count of isolated-margin positions."
+      - name: cross_positions
+        description: "Count of cross-margin positions."
